@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone Tycoon - Make Phone Wizard</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a1a;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .container {
+      width: 90%;
+      max-width: 500px;
+    }
+    .screen {
+      display: none;
+      background: #2e2e2e;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+    .screen.active {
+      display: block;
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 30px;
+    }
+    .stats {
+      font-size: 18px;
+      line-height: 2;
+      margin-bottom: 30px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 5px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #555;
+      cursor: default;
+    }
+    input, select {
+      padding: 8px;
+      margin: 10px 0;
+      width: 100%;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      text-align: left;
+    }
+    .slider-container {
+      margin: 20px 0;
+      text-align: left;
+    }
+    .slider-container input[type=range] {
+      width: 100%;
+    }
+    .cost-display {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #ccc;
+      text-align: left;
+    }
+    .summary {
+      font-size: 18px;
+      margin: 20px 0;
+      text-align: left;
+      background: #333;
+      padding: 15px;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div id="mainMenu" class="screen active">
+      <h1>📱 Phone Tycoon</h1>
+      <div class="stats">
+        <div id="money">💰 Money: $1,000,000</div>
+        <div id="rp">🧪 RP: 0</div>
+        <div id="date">📅 Date: 01/01/2005</div>
+      </div>
+      <button id="makePhoneBtn">Make Phone</button>
+      <button id="viewPhonesBtn">See Phones Created</button>
+      <button id="researchBtn">Research</button>
+    </div>
+
+    <div id="makePhoneWizard" class="screen">
+      <h1>📱 Make a New Phone</h1>
+
+      <div id="step1" class="step">
+        <label for="phoneName">Enter Phone Name:</label>
+        <input type="text" id="phoneName" placeholder="e.g. SuperPhone 2005" autocomplete="off" />
+        <button id="next1" disabled>Next ➡</button>
+      </div>
+
+      <div id="step2" class="step" style="display:none;">
+        <label for="processor">Select Processor:</label>
+        <select id="processor">
+          <option value="100">Intel XScale ($100 base)</option>
+          <option value="150">TI OMAP ($150 base)</option>
+          <option value="200">Qualcomm MSM ($200 base)</option>
+        </select>
+        <button id="next2">Next ➡</button>
+      </div>
+
+      <div id="step3" class="step" style="display:none;">
+        <label for="ram">Select RAM:</label>
+        <select id="ram">
+          <option value="50">128MB RAM ($50 base)</option>
+          <option value="100">256MB RAM ($100 base)</option>
+          <option value="200">512MB RAM ($200 base)</option>
+        </select>
+        <label for="rom">Select ROM:</label>
+        <select id="rom">
+          <option value="50">256MB ROM ($50 base)</option>
+          <option value="100">512MB ROM ($100 base)</option>
+          <option value="200">1GB ROM ($200 base)</option>
+        </select>
+        <button id="next3">Next ➡</button>
+      </div>
+
+      <div id="step4" class="step" style="display:none;">
+        <label for="salePrice">Set Phone Sale Price:</label>
+        <input type="number" id="salePrice" min="1" step="1" />
+        <div class="cost-display">Base Cost: $<span id="baseCostDisplay">0</span></div>
+        <button id="next4" disabled>Next ➡</button>
+      </div>
+
+      <div id="step5" class="step" style="display:none;">
+        <label for="copiesSlider">Select Copies to Build:</label>
+        <input type="range" id="copiesSlider" min="1" value="1" />
+        <div class="cost-display">Total Build Cost: $<span id="totalBuildCost">0</span> (You have $<span id="currentMoney">0</span>)</div>
+        <button id="next5" disabled>Build 📱</button>
+      </div>
+    </div>
+
+    <div id="viewPhonesUI" class="screen">
+      <h1>📋 Phones Created</h1>
+      <div id="phonesList" style="text-align:left; max-height:300px; overflow-y:auto; background:#333; padding:15px; border-radius:8px;"></div>
+      <button id="backFromViewPhones">🔙 Back</button>
+    </div>
+
+    <div id="researchUI" class="screen">
+      <h1>🧪 Research</h1>
+      <button id="backFromResearch">🔙 Back</button>
+    </div>
+
+  </div>
+
+  <script>
+    const gameState = {
+      money: 1000000,
+      rp: 0,
+      date: new Date('2005-01-01'),
+      phones: []
+    };
+
+    const moneyEl = document.getElementById('money');
+    const rpEl = document.getElementById('rp');
+    const dateEl = document.getElementById('date');
+
+    const screens = {
+      mainMenu: document.getElementById('mainMenu'),
+      makePhoneWizard: document.getElementById('makePhoneWizard'),
+      viewPhonesUI: document.getElementById('viewPhonesUI'),
+      researchUI: document.getElementById('researchUI')
+    };
+
+    const steps = [
+      document.getElementById('step1'),
+      document.getElementById('step2'),
+      document.getElementById('step3'),
+      document.getElementById('step4'),
+      document.getElementById('step5')
+    ];
+    let currentStep = 0;
+
+    const phoneNameInput = document.getElementById('phoneName');
+    const next1Btn = document.getElementById('next1');
+
+    const processorSelect = document.getElementById('processor');
+    const next2Btn = document.getElementById('next2');
+
+    const ramSelect = document.getElementById('ram');
+    const romSelect = document.getElementById('rom');
+    const next3Btn = document.getElementById('next3');
+
+    const salePriceInput = document.getElementById('salePrice');
+    const baseCostDisplay = document.getElementById('baseCostDisplay');
+    const next4Btn = document.getElementById('next4');
+
+    const copiesSlider = document.getElementById('copiesSlider');
+    const totalBuildCostDisplay = document.getElementById('totalBuildCost');
+    const currentMoneyDisplay = document.getElementById('currentMoney');
+    const next5Btn = document.getElementById('next5');
+
+    document.getElementById('makePhoneBtn').onclick = () => {
+      resetWizard();
+      showScreen('makePhoneWizard');
+    };
+    document.getElementById('viewPhonesBtn').onclick = () => {
+      updatePhonesList();
+      showScreen('viewPhonesUI');
+    };
+    document.getElementById('researchBtn').onclick = () => {
+      showScreen('researchUI');
+    };
+    document.getElementById('backFromViewPhones').onclick = () => showScreen('mainMenu');
+    document.getElementById('backFromResearch').onclick = () => showScreen('mainMenu');
+
+    function showScreen(id) {
+      Object.values(screens).forEach(screen => screen.classList.remove('active'));
+      screens[id].classList.add('active');
+    }
+
+    function showStep(n) {
+      steps.forEach((step, i) => step.style.display = (i === n ? 'block' : 'none'));
+      currentStep = n;
+      updateStepState(n);
+    }
+
+    function updateStepState(step) {
+      switch(step) {
+        case 0:
+          next1Btn.disabled = !phoneNameInput.value.trim();
+          break;
+        case 1:
+          break;
+        case 2:
+          break;
+        case 3:
+          validateSalePrice();
+          break;
+        case 4:
+          updateCopiesLimits();
+          break;
+      }
+    }
+
+    phoneNameInput.addEventListener('input', () => {
+      next1Btn.disabled = !phoneNameInput.value.trim();
+    });
+
+    next1Btn.onclick = () => {
+      showStep(1);
+    };
+
+    next2Btn.onclick = () => {
+      showStep(2);
+    };
+
+    next3Btn.onclick = () => {
+      calculateBaseCost();
+      salePriceInput.value = gameState.baseCost;
+      showStep(3);
+    };
+
+    salePriceInput.addEventListener('input', () => {
+      validateSalePrice();
+    });
+    function validateSalePrice() {
+      const price = Number(salePriceInput.value);
+      next4Btn.disabled = !(price >= gameState.baseCost);
+    }
+    next4Btn.onclick = () => {
+      showStep(4);
+    };
+
+    copiesSlider.addEventListener('input', () => {
+      updateTotalBuildCost();
+    });
+
+    next5Btn.onclick = () => {
+      const copies = Number(copiesSlider.value);
+      const totalCost = gameState.baseCost * copies;
+      if (gameState.money < totalCost) {
+        alert("You don't have enough money!");
+        return;
+      }
+      buildPhones(copies);
+      showScreen('mainMenu');
+    };
+
+    function calculateBaseCost() {
+      const procCost = Number(processorSelect.value);
+      const ramCost = Number(ramSelect.value);
+      const romCost = Number(romSelect.value);
+      gameState.baseCost = procCost + ramCost + romCost;
+      baseCostDisplay.textContent = gameState.baseCost.toFixed(2);
+    }
+
+    function updateCopiesLimits() {
+      currentMoneyDisplay.textContent = gameState.money.toFixed(2);
+      copiesSlider.min = 1;
+      copiesSlider.max = Math.floor(gameState.money / gameState.baseCost) || 1;
+      if (copiesSlider.value > copiesSlider.max) copiesSlider.value = copiesSlider.max;
+      updateTotalBuildCost();
+      next5Btn.disabled = false;
+    }
+
+    function updateTotalBuildCost() {
+      const copies = Number(copiesSlider.value);
+      const totalCost = copies * gameState.baseCost;
+      totalBuildCostDisplay.textContent = totalCost.toFixed(2);
+      next5Btn.disabled = (totalCost > gameState.money || copies < 1);
+    }
+
+    function buildPhones(copies) {
+      const cost = gameState.baseCost * copies;
+      gameState.money -= cost;
+      const salePrice = Number(salePriceInput.value);
+      const baseCost = gameState.baseCost;
+      let profitPerUnit = salePrice - baseCost;
+      if (profitPerUnit < 0) profitPerUnit = 0;
+      const variance = (Math.random() * 0.2) - 0.1;
+      const actualProfit = profitPerUnit * (1 + variance);
+      const totalProfit = actualProfit * copies;
+      gameState.money += totalProfit;
+      gameState.phones.push({
+        name: phoneNameInput.value.trim(),
+        processor: processorSelect.options[processorSelect.selectedIndex].text,
+        ram: ramSelect.options[ramSelect.selectedIndex].text,
+        rom: romSelect.options[romSelect.selectedIndex].text,
+        salePrice: salePrice.toFixed(2),
+        copies,
+        cost: cost.toFixed(2),
+        profit: totalProfit.toFixed(2),
+        date: gameState.date.toLocaleDateString()
+      });
+      alert(`Built ${copies} copies of "${phoneNameInput.value.trim()}" and earned $${totalProfit.toFixed(2)}!`);
+      updateUI();
+    }
+
+    function updatePhonesList() {
+      const listEl = document.getElementById('phonesList');
+      if (gameState.phones.length === 0) {
+        listEl.textContent = "No phones created yet.";
+        return;
+      }
+      listEl.innerHTML = '';
+      gameState.phones.forEach((phone) => {
+        const div = document.createElement('div');
+        div.style.borderBottom = "1px solid #555";
+        div.style.padding = "8px 0";
+        div.innerHTML = `<b>${phone.name}</b> (${phone.date})<br>
+          Processor: ${phone.processor}<br>
+          RAM: ${phone.ram}, ROM: ${phone.rom}<br>
+          Sale Price: $${phone.salePrice}<br>
+          Copies: ${phone.copies}<br>
+          Build Cost: $${phone.cost}<br>
+          Profit Earned: $${phone.profit}`;
+        listEl.appendChild(div);
+      });
+    }
+
+    function resetWizard() {
+      showStep(0);
+      phoneNameInput.value = '';
+      next1Btn.disabled = true;
+      processorSelect.selectedIndex = 0;
+      ramSelect.selectedIndex = 0;
+      romSelect.selectedIndex = 0;
+      salePriceInput.value = '';
+      next4Btn.disabled = true;
+      copiesSlider.value = 1;
+      next5Btn.disabled = false;
+    }
+
+    function updateUI() {
+      moneyEl.textContent = `💰 Money: $${gameState.money.toFixed(2)}`;
+      rpEl.textContent = `🧪 RP: ${gameState.rp}`;
+      dateEl.textContent = `📅 Date: ${gameState.date.toLocaleDateString()}`;
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
